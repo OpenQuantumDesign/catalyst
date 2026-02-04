@@ -41,7 +41,7 @@ std::optional<double> getStaticValueOrNothing(const Value value)
 namespace {
 
 
-struct PruneEndZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
+struct PruneAfterZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
     using mlir::OpRewritePattern<CustomOp>::OpRewritePattern; 
     
     mlir::LogicalResult matchAndRewrite(CustomOp op, mlir::PatternRewriter &rewriter) const override
@@ -51,7 +51,7 @@ struct PruneEndZeroRotationsRewritePattern : public mlir::OpRewritePattern<Custo
         ValueRange inQubits = op.getInQubits();
         auto opGateIndex = std::find(rotationGates.begin(), rotationGates.end(), op.getGateName().str());
         
-        if (opGateIndex == rotationGates.end() || !isa<CustomOp>(inQubits[0].getDefiningOp()))  {
+        if (opGateIndex == rotationGates.end())  {
             return failure();
         }
     
@@ -73,7 +73,7 @@ struct PruneEndZeroRotationsRewritePattern : public mlir::OpRewritePattern<Custo
 };
 
 
-struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
+struct PruneBeforeZeroRotationRewritePattern : public mlir::OpRewritePattern<CustomOp> {
     using mlir::OpRewritePattern<CustomOp>::OpRewritePattern;
 
     mlir::LogicalResult matchAndRewrite(CustomOp op, mlir::PatternRewriter &rewriter) const override
@@ -82,12 +82,10 @@ struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp
 
         ValueRange inQubits = op.getInQubits();
 
-        std::vector<mlir::Value> newInQubitsVec;
         std::vector<CustomOp> prunedParentOps;
         for (Value inQubit : inQubits)
         {  
             if (!isa<CustomOp>(inQubit.getDefiningOp())) {
-                newInQubitsVec.push_back(inQubit);
                 continue;
             }
 
@@ -95,7 +93,6 @@ struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp
             auto parentOpGateIndex = std::find(rotationGates.begin(), rotationGates.end(), parentOp.getGateName().str());
 
             if (parentOpGateIndex == rotationGates.end()) {
-                newInQubitsVec.push_back(inQubit);
                 continue; 
             }
 
@@ -105,27 +102,14 @@ struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp
             bool parentAngleIsZero = parentAngleOpt.has_value() && parentAngleOpt.value() == 0.0;
 
             if (!parentAngleIsZero) {
-                newInQubitsVec.push_back(inQubit);
                 continue;
             }
             
-            newInQubitsVec.push_back(parentOp.getInQubits()[0]);
+            inQubit.replaceAllUsesWith(parentOp.getInQubits()[0]);
             prunedParentOps.push_back(parentOp);
 
         }
-        
 
-        llvm::ArrayRef<mlir::Value> newInQubitsRef(newInQubitsVec.data(), newInQubitsVec.size());
-        ValueRange newInQubits(newInQubitsRef);
-        
-        if (prunedParentOps.size() == 0) {
-            return failure();
-        }
-
-        CustomOp prunedOp = rewriter.create<CustomOp>(op.getLoc(), op.getOutQubits().getTypes(), TypeRange{}, op.getParams(),
-                                        newInQubits, op.getGateName().str(), false, ValueRange{}, ValueRange{});
-        
-        rewriter.replaceOp(op, prunedOp);
         for (CustomOp parent : prunedParentOps) {
             rewriter.eraseOp(parent);
         }
@@ -141,8 +125,8 @@ namespace quantum {
 
 void populatePruneZeroRotationsPatterns(RewritePatternSet &patterns)
 {
-    patterns.add<PruneZeroRotationsRewritePattern>(patterns.getContext(), 1);
-    patterns.add<PruneEndZeroRotationsRewritePattern>(patterns.getContext(), 1);
+    patterns.add<PruneBeforeZeroRotationRewritePattern>(patterns.getContext(), 1);
+    patterns.add<PruneAfterZeroRotationsRewritePattern>(patterns.getContext(), 1);
 }
 
 } // namespace quantum
