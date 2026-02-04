@@ -133,6 +133,10 @@ def DisentangleSWAPPass : Pass<"disentangle-SWAP"> {
 def LoopBoundaryOptimizationPass : Pass<"loop-boundary"> {
     let summary = "Perform loop boundary optimization to eliminate the redundancy of operations on loop boundary.";
 }
+
+def PruneZeroRotationsPass : Pass<"prune-zero-rotations"> {
+    let summary = "Remove rotations of zero angle.";
+}
 // ----- Quantum circuit transformation passes end ----- //
 
 #endif // QUANTUM_PASSES

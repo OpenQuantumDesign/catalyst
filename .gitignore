@@ -42,3 +42,5 @@ mlir/standalone
 
 # macOS
 .DS_Store
+
+_scripts
