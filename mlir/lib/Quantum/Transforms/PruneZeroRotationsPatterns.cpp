@@ -40,58 +40,98 @@ std::optional<double> getStaticValueOrNothing(const Value value)
 
 namespace {
 
-struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
-    using mlir::OpRewritePattern<CustomOp>::OpRewritePattern;
 
+struct PruneEndZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
+    using mlir::OpRewritePattern<CustomOp>::OpRewritePattern; 
+    
     mlir::LogicalResult matchAndRewrite(CustomOp op, mlir::PatternRewriter &rewriter) const override
     {
-        ValueRange inQubits = op.getInQubits();
-        auto parent = inQubits[0].getDefiningOp();
-
-        if (!isa<CustomOp>(parent)) {
-            return failure();
-        }
-        
-        auto parentOp = llvm::cast<CustomOp>(inQubits[0].getDefiningOp());
-
         std::vector<std::string> rotationGates = {"RX", "RY", "RZ"};
-
-        auto parentOpGateIndex = std::find(rotationGates.begin(), rotationGates.end(), parentOp.getGateName().str());
+    
+        ValueRange inQubits = op.getInQubits();
         auto opGateIndex = std::find(rotationGates.begin(), rotationGates.end(), op.getGateName().str());
         
-        if (parentOpGateIndex == rotationGates.end() || opGateIndex == rotationGates.end()) {
+        if (opGateIndex == rotationGates.end() || !isa<CustomOp>(inQubits[0].getDefiningOp()))  {
             return failure();
         }
-
-        mlir::Value parentAngle = parentOp.getParams().front();
-        arith::ConstantFloatOp parentAngleDefiningOp = parentAngle.getDefiningOp<arith::ConstantFloatOp>();
-        std::optional<double> parentAngleOpt = getStaticValueOrNothing(parentAngleDefiningOp);
-        bool parentAngleIsZero = parentAngleOpt.has_value() && parentAngleOpt.value() == 0.0;
-        
-
+    
         mlir::Value angle = op.getParams().front();
         arith::ConstantFloatOp angleDefiningOp = angle.getDefiningOp<arith::ConstantFloatOp>();
         std::optional<double> angleOpt = getStaticValueOrNothing(angleDefiningOp);
         bool angleIsZero = angleOpt.has_value() && angleOpt.value() == 0.0;
         
-        CustomOp prunedOp;
-        if (parentAngleIsZero) {
-            prunedOp =
-                rewriter.create<CustomOp>(op.getLoc(), op.getOutQubits().getTypes(), TypeRange{}, op.getParams().front(),
-                                        parentOp.getInQubits(), op.getGateName().str(), false, ValueRange{}, ValueRange{});
-        }
-        else if (angleIsZero) {
-            prunedOp =
-                rewriter.create<CustomOp>(parentOp.getLoc(), op.getOutQubits().getTypes(), TypeRange{}, parentOp.getParams().front(),
-                                        parentOp.getInQubits(), parentOp.getGateName().str(), false, ValueRange{}, ValueRange{});
-        }
-        else {
+        if (!angleIsZero) {
             return failure();
         }
 
-        rewriter.replaceOp(op, prunedOp);
-        rewriter.eraseOp(parentOp);
+        mlir::Value outQubit = op.getOutQubits()[0];
+        outQubit.replaceAllUsesWith(inQubits[0]);
+        rewriter.eraseOp(op);
+
         return success();
+    }
+};
+
+
+struct PruneZeroRotationsRewritePattern : public mlir::OpRewritePattern<CustomOp> {
+    using mlir::OpRewritePattern<CustomOp>::OpRewritePattern;
+
+    mlir::LogicalResult matchAndRewrite(CustomOp op, mlir::PatternRewriter &rewriter) const override
+    {
+        std::vector<std::string> rotationGates = {"RX", "RY", "RZ"};
+
+        ValueRange inQubits = op.getInQubits();
+
+        std::vector<mlir::Value> newInQubitsVec;
+        std::vector<CustomOp> prunedParentOps;
+        for (Value inQubit : inQubits)
+        {  
+            if (!isa<CustomOp>(inQubit.getDefiningOp())) {
+                newInQubitsVec.push_back(inQubit);
+                continue;
+            }
+
+            CustomOp parentOp = inQubit.getDefiningOp<CustomOp>();
+            auto parentOpGateIndex = std::find(rotationGates.begin(), rotationGates.end(), parentOp.getGateName().str());
+
+            if (parentOpGateIndex == rotationGates.end()) {
+                newInQubitsVec.push_back(inQubit);
+                continue; 
+            }
+
+            mlir::Value parentAngle = parentOp.getParams().front();
+            arith::ConstantFloatOp parentAngleDefiningOp = parentAngle.getDefiningOp<arith::ConstantFloatOp>();
+            std::optional<double> parentAngleOpt = getStaticValueOrNothing(parentAngleDefiningOp);
+            bool parentAngleIsZero = parentAngleOpt.has_value() && parentAngleOpt.value() == 0.0;
+
+            if (!parentAngleIsZero) {
+                newInQubitsVec.push_back(inQubit);
+                continue;
+            }
+            
+            newInQubitsVec.push_back(parentOp.getInQubits()[0]);
+            prunedParentOps.push_back(parentOp);
+
+        }
+        
+
+        llvm::ArrayRef<mlir::Value> newInQubitsRef(newInQubitsVec.data(), newInQubitsVec.size());
+        ValueRange newInQubits(newInQubitsRef);
+        
+        if (prunedParentOps.size() == 0) {
+            return failure();
+        }
+
+        CustomOp prunedOp = rewriter.create<CustomOp>(op.getLoc(), op.getOutQubits().getTypes(), TypeRange{}, op.getParams(),
+                                        newInQubits, op.getGateName().str(), false, ValueRange{}, ValueRange{});
+        
+        rewriter.replaceOp(op, prunedOp);
+        for (CustomOp parent : prunedParentOps) {
+            rewriter.eraseOp(parent);
+        }
+
+        return failure();
+
     }
 };
 } // namespace
@@ -102,6 +142,7 @@ namespace quantum {
 void populatePruneZeroRotationsPatterns(RewritePatternSet &patterns)
 {
     patterns.add<PruneZeroRotationsRewritePattern>(patterns.getContext(), 1);
+    patterns.add<PruneEndZeroRotationsRewritePattern>(patterns.getContext(), 1);
 }
 
 } // namespace quantum
