@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG_TYPE "prune-zero-rotation"
+#define DEBUG_TYPE "prune-zero-rotations"
 
 #include "llvm/Support/Debug.h"
 
@@ -20,7 +20,6 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-#include "Catalyst/IR/CatalystDialect.h"
 #include "Quantum/IR/QuantumOps.h"
 #include "Quantum/Transforms/Patterns.h"
 
