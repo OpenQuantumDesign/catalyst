@@ -44,3 +44,7 @@ mlir/standalone
 .DS_Store
 
 _scripts
+
+scripts/*
+!scripts/test.ipynb
+!scripts/*.qasm
