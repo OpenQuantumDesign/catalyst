@@ -47,3 +47,4 @@ scripts/*
 !scripts/calibration_data
 !scripts/oqd_device.ipynb
 !scripts/oqd_device_mipt.ipynb
+

@@ -137,7 +137,7 @@ FetchContent_MakeAvailable(json)
 
 FetchContent_Declare(tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
-    GIT_TAG v3.4.0
+    GIT_TAG master
     SYSTEM
 )
 FetchContent_MakeAvailable(tomlplusplus)
