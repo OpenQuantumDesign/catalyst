@@ -18,7 +18,11 @@ detection_beam_channel = 4
 detector_channel = 5
 downstate_exp_lambda_per_us = 0.25
 upstate_poisson_lambda_per_us = 1
-transfer_time = 30000
+transfer_time = 10000
+ttlout_init_time = 10
+ttlout_time = 50
+ttlout_gap_time = 200
+
 
 [artiq]
 initial_slack = 10000
