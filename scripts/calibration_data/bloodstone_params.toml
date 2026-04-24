@@ -4,26 +4,42 @@ rabi_to_voltage = 1e3
 max_ions = 4
 
 [doppler_cooling]
-duration = 10000
-
-[rsb_cooling]
-duration = 1000
+duration = 2000000
+frequency = 204000000
+phase = 0
+attenuation = 6
+sideband_frequency = 187500000
+sideband_phase = 0
+sideband_attenuation = 31
 
 [optical_pumping]
-duration = 2000
-
-[raman1]
-raw_frequency = 5306061493668561.0
-transition = "q1->e1m"
-
-[raman2]
-raw_frequency = 5306142187360824.0
-transition = "q0->e1m"
+duration = 500000
+frequency = 210000000
+phase = 0
+attenuation = 2
 
 [detection]
-transition = "q1->e0"
-detection_beam_channel = 4
-detector_channel = 5
+frequency = 210000000
+phase = 0
+attenuation = 0
+duration = 100000
+
+[rsb_cooling]
+duration = 5000000
+frequency = 204000000
+phase = 0
+attenuation = 6
+
+[raman]
+ramp_down_time = 1000
+
+[raman1]
+raw_frequency = 5306061431083008.0 # Yb171["e1m"].energy - Yb171["q1"].energy + 2 * np.pi * detuning - (2 * np.pi * modulation)
+transition = "upstate->estate"
+
+[raman2]
+raw_frequency = 5306142187360824.0 # Yb171["e1m"].energy - Yb171["q0"].energy + 2 * np.pi * detuning
+transition = "downstate->estate"
 
 [artiq]
 initial_slack = 100000
@@ -37,10 +53,9 @@ response_time = 512
 max_cores = 20
 frequency_separation = 1e5
 
-[urukul0]
+[urukul]
 set_time = 8000
 response_time = 0
 
-[urukul1]
-set_time = 8000
+[ttl]
 response_time = 0
