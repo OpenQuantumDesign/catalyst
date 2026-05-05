@@ -1,7 +1,6 @@
 from qiskit_experiments.library import StandardRB
 from qiskit import qasm2
 from qiskit import transpile
-from catalyst.debug.compiler_functions import get_compilation_stage
 import pennylane as qml
 from catalyst.third_party.oqd import OQDDevice
 import json
@@ -11,23 +10,18 @@ from oqd_core.compiler.atomic.canonicalize import canonicalize_atomic_circuit_fa
 from oqd_compiler_infrastructure import Chain, Post
 from oqd_bare_metal.compiler.codegen import AtomicToBloodstoneV1
 from oqd_bare_metal.compiler.optim import (
-    SpectrumCoreRemapping,
     SpectrumPrune,
     SpectrumUnwrapResets,
 )
 import ast_comments as ast
 
-import os
-import shutil
 import pathlib
-import numpy as np
 
-from functools import partial
+from tempfile import TemporaryDirectory
+
+from oqd_pipeline import OQD_PIPELINES
 
 ########################################################################################
-
-
-# TODO: Fix AWG DDS core (should be 20 instead of 0)
 
 
 def remove_unsupported(circuit):
@@ -56,6 +50,8 @@ def generate_circuit(
     lengths = [length]
     num_samples = num_samples
 
+    # Qiskit experiments stardard randomized benchmarking
+
     rb = StandardRB(qubits, lengths, num_samples=num_samples)
     circuits = [
         transpile(
@@ -68,46 +64,11 @@ def generate_circuit(
 
     ########################################################################################
 
-    compile_results = pathlib.Path("temp")
-    if not compile_results.exists():
-        compile_results.mkdir()
+    # Setup Pennylane devices
+
+    temp_dir = TemporaryDirectory()
+    compile_results = pathlib.Path(temp_dir.name)
     openapl_file_name = "oqd_circuit_benchmarking.openapl.json"
-
-    toml_files = {
-        "device-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/device.toml",
-        "qubit-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/qubit.toml",
-        "gate-to-pulse-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/gate.toml",
-    }
-
-    toml_files = " ".join([f"{k}={v}" for k, v in toml_files.items()])
-
-    OQD_PIPELINES = [
-        (
-            "DeviceAgnosticPipeline",
-            [
-                "quantum-compilation-stage",
-                "hlo-lowering-stage",
-                "gradient-lowering-stage",
-                "bufferization-stage",
-            ],
-        ),
-        (
-            "IonDecompositionStage",
-            [
-                "func.func(ions-decomposition)",
-                "func.func(prune-zero-rotations)",
-            ],
-        ),
-        (
-            "IonDialectLoweringStage",
-            [
-                f"func.func(gates-to-pulses{{{toml_files}}})",
-            ],
-        ),
-        ("IonToLLVMDialectConversion", ["convert-ion-to-llvm"]),
-        ("MLIRToLLVMDialectConversion", ["llvm-dialect-lowering-stage"]),
-    ]
-
     oqd_dev = OQDDevice(
         backend="default",
         wires=1,
@@ -116,11 +77,27 @@ def generate_circuit(
 
     dev = qml.device("default.qubit", wires=1)
 
+    ########################################################################################
+
     for n, circ in enumerate(circuits):
         print(
             f"\rCompiling realization {n + 1}/{len(circuits)} [{length=}, {initial_state=}]",
             end=" " * 32,
         )
+
+        ########################################################################################
+
+        # Pennylane Circuit
+
+        # Simulate final state
+
+        @qml.qnode(dev)
+        def oqd_circuit_benchmarking_sim():
+            qml.X(wires=0) if initial_state else None
+            qml.from_qasm(qasm2.dumps(remove_unsupported(circ)))()
+            return qml.state()
+
+        # Compile with Catalyst OQD pipelines
 
         @qml.qjit(pipelines=OQD_PIPELINES)
         @qml.set_shots(1)
@@ -130,13 +107,19 @@ def generate_circuit(
             qml.from_qasm(qasm2.dumps(circ))()
             return qml.counts(wires=0)
 
-        oqd_circuit_benchmarking()
-
         ########################################################################################
+
+        # Generate OpenAPL
+
+        oqd_circuit_benchmarking()
 
         circuit = AtomicCircuit.model_validate_json(
             json.dumps(json.load(open(compile_results / openapl_file_name)), indent=2)
         )
+
+        ########################################################################################
+
+        # Compile AtomicCircuit to ARTIQ Python
 
         compiler = Chain(
             canonicalize_atomic_circuit_factory(),
@@ -165,14 +148,6 @@ def generate_circuit(
                 if line
             ]
         )
-
-        ########################################################################################
-
-        @qml.qnode(dev)
-        def oqd_circuit_benchmarking_sim():
-            qml.X(wires=0) if initial_state else None
-            qml.from_qasm(qasm2.dumps(remove_unsupported(circ)))()
-            return qml.state()
 
         artiq_experiment.body.append(
             ast.Expr(

@@ -1,7 +1,3 @@
-from qiskit_experiments.library import StandardRB
-from qiskit import qasm2
-from qiskit import transpile
-from catalyst.debug.compiler_functions import get_compilation_stage
 import pennylane as qml
 from catalyst.third_party.oqd import OQDDevice
 import json
@@ -10,19 +6,19 @@ from oqd_core.interface.atomic import AtomicCircuit
 from oqd_core.compiler.atomic.canonicalize import canonicalize_atomic_circuit_factory
 from oqd_compiler_infrastructure import Chain, Post
 from oqd_bare_metal.compiler.codegen import AtomicToBloodstoneV1
+from oqd_bare_metal.compiler.codegen.builder import ARTIQPyBuilder
 from oqd_bare_metal.compiler.optim import (
-    SpectrumCoreRemapping,
     SpectrumPrune,
     SpectrumUnwrapResets,
 )
 import ast_comments as ast
 
-import os
-import shutil
 import pathlib
 import numpy as np
 
-from functools import partial
+from tempfile import TemporaryDirectory
+
+from oqd_pipeline import OQD_PIPELINES
 
 ########################################################################################
 
@@ -43,50 +39,13 @@ def remove_unsupported(circuit):
 ########################################################################################
 
 
-def generate_rabi(pts, output_path=pathlib.Path("./expt")):
+def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
 
-    ########################################################################################
+    # Setup Pennylane devices
 
-    compile_results = pathlib.Path("temp")
-    if not compile_results.exists():
-        compile_results.mkdir()
+    temp_dir = TemporaryDirectory()
+    compile_results = pathlib.Path(temp_dir.name)
     openapl_file_name = "oqd_circuit_benchmarking.openapl.json"
-
-    toml_files = {
-        "device-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/device.toml",
-        "qubit-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/qubit.toml",
-        "gate-to-pulse-toml-loc": "/home/user/oqd-catalyst/scripts/calibration_data/gate.toml",
-    }
-
-    toml_files = " ".join([f"{k}={v}" for k, v in toml_files.items()])
-
-    OQD_PIPELINES = [
-        (
-            "DeviceAgnosticPipeline",
-            [
-                "quantum-compilation-stage",
-                "hlo-lowering-stage",
-                "gradient-lowering-stage",
-                "bufferization-stage",
-            ],
-        ),
-        (
-            "IonDecompositionStage",
-            [
-                "func.func(ions-decomposition)",
-                "func.func(prune-zero-rotations)",
-            ],
-        ),
-        (
-            "IonDialectLoweringStage",
-            [
-                f"func.func(gates-to-pulses{{{toml_files}}})",
-            ],
-        ),
-        ("IonToLLVMDialectConversion", ["convert-ion-to-llvm"]),
-        ("MLIRToLLVMDialectConversion", ["llvm-dialect-lowering-stage"]),
-    ]
-
     oqd_dev = OQDDevice(
         backend="default",
         wires=1,
@@ -95,26 +54,55 @@ def generate_rabi(pts, output_path=pathlib.Path("./expt")):
 
     dev = qml.device("default.qubit", wires=1)
 
+    ########################################################################################
+
     for n in range(pts):
         print(
             f"\rCompiling realization {n + 1}/{pts}",
             end=" " * 32,
         )
 
+        ########################################################################################
+
+        # Pennylane Circuit
+
+        # Simulate final state
+
+        @qml.qnode(dev)
+        def oqd_circuit_benchmarking_sim():
+            qml.RX(n * theta / pts, wires=0)
+            return qml.state()
+
+        # Compile with Catalyst OQD pipelines
+
         @qml.qjit(pipelines=OQD_PIPELINES)
         @qml.set_shots(1)
         @qml.qnode(oqd_dev)
         def oqd_circuit_benchmarking():
-            qml.RX(n * 5 * np.pi / pts, wires=0)
+            qml.RX(n * theta / pts, wires=0)
             return qml.counts(wires=0)
 
-        oqd_circuit_benchmarking()
-
         ########################################################################################
+
+        # Generate OpenAPL
+
+        oqd_circuit_benchmarking()
 
         circuit = AtomicCircuit.model_validate_json(
             json.dumps(json.load(open(compile_results / openapl_file_name)), indent=2)
         )
+
+        match circuit.protocol.sequence:
+            case []:
+                duration = 0
+            case [parallel]:
+                duration = parallel.sequence[0].duration
+            case _:
+                raise ValueError("Cannot extract duration")
+
+        ########################################################################################
+
+        # Compile AtomicCircuit to ARTIQ Python
 
         compiler = Chain(
             canonicalize_atomic_circuit_factory(),
@@ -144,13 +132,6 @@ def generate_rabi(pts, output_path=pathlib.Path("./expt")):
             ]
         )
 
-        ########################################################################################
-
-        @qml.qnode(dev)
-        def oqd_circuit_benchmarking_sim():
-            qml.RX(n * 5 * np.pi / pts, wires=0)
-            return qml.state()
-
         artiq_experiment.body.append(
             ast.Expr(
                 ast.Comment(
@@ -160,9 +141,40 @@ def generate_rabi(pts, output_path=pathlib.Path("./expt")):
             )
         )
 
+        save_duration_ast = [
+            ARTIQPyBuilder.codegen_call(
+                "self.set_dataset",
+                keywords=[
+                    ast.keyword("key", ast.Constant(value="duration")),
+                    ast.keyword(
+                        "value",
+                        ARTIQPyBuilder.codegen_call(
+                            "np.full",
+                            args=[
+                                ast.Constant(1),
+                                ARTIQPyBuilder.codegen_attr("np.nan"),
+                            ],
+                            as_expr=False,
+                        ),
+                    ),
+                ],
+            ),
+            ARTIQPyBuilder.codegen_call(
+                "self.mutate_dataset",
+                args=[
+                    ast.Constant(value="duration"),
+                    ast.Constant(value=0),
+                    ast.Constant(value=duration),
+                ],
+            ),
+        ]
+
+        for line in reversed(save_duration_ast):
+            artiq_experiment.body[2].body[1].body.insert(2, line)
+
         ########################################################################################
 
-        expt_path = output_path / f"rabi/oqd_circuit_benchmarking_{n}.artiq.py"
+        expt_path = output_path / f"rabi/oqd_circuit_rabi_{n}.artiq.py"
 
         if not expt_path.parent.exists():
             expt_path.parent.mkdir()
@@ -176,4 +188,5 @@ def generate_rabi(pts, output_path=pathlib.Path("./expt")):
 ########################################################################################
 
 if __name__ == "__main__":
-    generate_rabi(60)
+    # generate_rabi(5 * np.pi, 2)
+    generate_rabi(5 * np.pi, 60)
