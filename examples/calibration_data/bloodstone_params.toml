@@ -1,0 +1,69 @@
+raman_repetition_rate = 504803673.9494223
+rabi_to_voltage = 1000.0
+max_ions = 4
+
+[doppler_cooling]
+duration = 2000000
+frequency = 204000000.0
+phase = 0.0
+attenuation = 6.0
+sideband_frequency = 187500000.0
+sideband_phase = 0.0
+sideband_attenuation = 0.0
+
+[optical_pumping]
+duration = 99999
+frequency = 210000000.0
+phase = 0.0
+attenuation = 6.0
+
+[detection]
+frequency = 210000000.0
+phase = 0.0
+attenuation = 7.0
+duration = 500000
+
+[rsb_cooling]
+duration = 5000000
+frequency = 204000000
+phase = 0
+attenuation = 6
+
+[raman]
+ramp_down_time = 2000
+
+[raman1]
+raw_frequency = 5306061431076725.0
+transition = "upstate->estate"
+core = 20
+amplitude = 0.9
+
+[raman2]
+raw_frequency = 5306142187360824.0
+transition = "downstate->estate"
+
+[artiq]
+initial_slack = 10000
+machine_unit = 1e-9
+
+[spectrum_awg]
+trigger_time = 500
+response_time = 512
+
+[aod]
+max_cores = 20
+frequency_separation = 100000.0
+
+[urukul]
+set_time = 8000
+response_time = 0
+
+[ttl]
+response_time = 0
+
+[awg]
+channels_amp = 2000
+channels_output_load = 50
+channel_trigger_ext0_level0 = 1000
+clock_mode = "extrefclock"
+clock_reference_clock = 10000000

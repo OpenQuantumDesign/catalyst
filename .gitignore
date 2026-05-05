@@ -44,7 +44,6 @@ mlir/standalone
 .DS_Store
 
 scripts/*
-!scripts/calibration_data
-!scripts/oqd_device.ipynb
-!scripts/oqd_device_mipt.ipynb
-
+examples/benchmarking/expt
+examples/*/oqd_circuit*
+examples/calibration_data/archive
