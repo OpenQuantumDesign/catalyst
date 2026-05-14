@@ -39,6 +39,6 @@ pydot # Graph visualization backend requirement
 matplotlib # Graph visualization frontend requirement
 graphviz # Graph visualization backend requirement
 
-oqd-bare-metal @ git+https://github.com/openquantumdesign/oqd-bare-metal@bloodstone  
+oqd-bare-metal @ git+ssh://git@github.com/openquantumdesign/oqd-bare-metal@bloodstone  
 qiskit
 qiskit_experiments
