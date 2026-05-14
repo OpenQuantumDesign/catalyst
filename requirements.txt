@@ -42,3 +42,4 @@ graphviz # Graph visualization backend requirement
 oqd-bare-metal @ git+ssh://git@github.com/openquantumdesign/oqd-bare-metal@bloodstone  
 qiskit
 qiskit_experiments
+lmdb

@@ -4,21 +4,21 @@ max_ions = 4
 
 [doppler_cooling]
 duration = 5000000
-frequency = 204000.0
+frequency = 204000000.0
 phase = 0.0
 attenuation = 6.0
-sideband_frequency = 187500.0
+sideband_frequency = 187500000.0
 sideband_phase = 0.0
 sideband_attenuation = 0.0
 
 [optical_pumping]
 duration = 150000
-frequency = 210000.0
+frequency = 210000000.0
 phase = 0.0
 attenuation = 6.0
 
 [detection]
-frequency = 210000.0
+frequency = 210000000.0
 phase = 0.0
 attenuation = 6.0
 duration = 800000
@@ -33,7 +33,7 @@ attenuation = 6
 ramp_down_time = 2000
 
 [raman1]
-raw_frequency = 5306062748986393.0
+raw_frequency = 5306061431076405.0
 transition = "upstate->estate"
 core = 0
 amplitude = 0.9
