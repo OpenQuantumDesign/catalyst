@@ -3,25 +3,25 @@ rabi_to_voltage = 1000.0
 max_ions = 4
 
 [doppler_cooling]
-duration = 2000000
-frequency = 204000000.0
+duration = 5000000
+frequency = 204000.0
 phase = 0.0
 attenuation = 6.0
-sideband_frequency = 187500000.0
+sideband_frequency = 187500.0
 sideband_phase = 0.0
 sideband_attenuation = 0.0
 
 [optical_pumping]
-duration = 99999
-frequency = 210000000.0
+duration = 150000
+frequency = 210000.0
 phase = 0.0
 attenuation = 6.0
 
 [detection]
-frequency = 210000000.0
+frequency = 210000.0
 phase = 0.0
-attenuation = 7.0
-duration = 500000
+attenuation = 6.0
+duration = 800000
 
 [rsb_cooling]
 duration = 5000000
@@ -33,9 +33,9 @@ attenuation = 6
 ramp_down_time = 2000
 
 [raman1]
-raw_frequency = 5306061431076725.0
+raw_frequency = 5306062748986393.0
 transition = "upstate->estate"
-core = 20
+core = 0
 amplitude = 0.9
 
 [raman2]
@@ -43,7 +43,7 @@ raw_frequency = 5306142187360824.0
 transition = "downstate->estate"
 
 [artiq]
-initial_slack = 10000
+initial_slack = 20000
 machine_unit = 1e-9
 
 [spectrum_awg]
@@ -62,8 +62,8 @@ response_time = 0
 response_time = 0
 
 [awg]
-channels_amp = 2000
+channels_amp = 500
 channels_output_load = 50
-channel_trigger_ext0_level0 = 1000
-clock_mode = "extrefclock"
-clock_reference_clock = 10000000
+channel_trigger_ext0_level0 = 500
+clock_mode = "none"
+clock_reference_clock = "none"

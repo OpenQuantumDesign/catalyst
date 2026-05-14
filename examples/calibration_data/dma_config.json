@@ -1,0 +1,52 @@
+{
+  "config_type": "dma",
+  "click_shield": true,
+  "boards": [
+    {
+      "name": "RedPitaya1",
+      "ip": "172.31.60.21",
+      "enabled": true,
+      "trigger_source": "CH1_PE",
+      "channel_names": ["TTLOut_Ch6 (Red Pitaya Trigger)", null, null, null]
+    },
+    {
+      "name": "RedPitaya2",
+      "ip": "172.31.60.25",
+      "enabled": false,
+      "trigger_source": "EXT_NE",
+      "channel_names": [
+        "Urukul9912_Ch0",
+        "Urukul9912_Ch1",
+        "Urukul9912_Ch2",
+        "Urukul9912_Ch3)"
+      ]
+    },
+    {
+      "name": "RedPitaya3",
+      "ip": "172.31.60.23",
+      "enabled": true,
+      "trigger_source": "EXT_NE",
+      "channel_names": ["SpectrumM4i.6631x_Ch0 (AWG)", null, null, null]
+    },
+    {
+      "name": "RedPitaya4",
+      "ip": "172.31.60.22",
+      "enabled": true,
+      "trigger_source": "EXT_NE",
+      "channel_names": [
+        "Urukul9910_Ch0 (Detection_DDS)",
+        "Urukul9910_Ch1 (Cooling DDS)",
+        "Urukul9910_Ch2 (Cooling Sideband DDS)",
+        "Urukul9910_Ch3 (Pumping DDS"
+      ]
+    }
+  ],
+  "decimation": 1,
+  "trigger_level": 0.5,
+  "samples": 1e6,
+  "data_units": "VOLTS",
+  "max_buffers": 100,
+  "trigger_timeout": -1,
+  "buffer_timeout": -1,
+  "read_timeout": 1000
+}

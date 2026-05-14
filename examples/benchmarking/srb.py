@@ -180,11 +180,11 @@ if __name__ == "__main__":
     # generate_circuit(5, 50, 0)
     # generate_circuit(5, 50, 1)
 
-    # generate_circuit(10, 50, 0)
-    # generate_circuit(10, 50, 1)
+    generate_circuit(10, 50, 0)
+    generate_circuit(10, 50, 1)
 
     # generate_circuit(20, 50, 0)
     # generate_circuit(20, 50, 1)
 
-    generate_circuit(1, 1, 0)
-    generate_circuit(1, 1, 1)
+    # generate_circuit(1, 1, 0)
+    # generate_circuit(1, 1, 1)

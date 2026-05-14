@@ -38,3 +38,7 @@ amazon-braket-pennylane-plugin>1.27.1; python_version < "3.14"
 pydot # Graph visualization backend requirement
 matplotlib # Graph visualization frontend requirement
 graphviz # Graph visualization backend requirement
+
+oqd-bare-metal @ git+https://github.com/openquantumdesign/oqd-bare-metal@bloodstone  
+qiskit
+qiskit_experiments

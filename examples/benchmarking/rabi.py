@@ -56,7 +56,9 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
 
     ########################################################################################
 
-    for n in range(pts):
+    rabi_angles = np.linspace(0, theta, pts)
+
+    for n, angle in enumerate(rabi_angles):
         print(
             f"\rCompiling realization {n + 1}/{pts}",
             end=" " * 32,
@@ -70,7 +72,7 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
 
         @qml.qnode(dev)
         def oqd_circuit_benchmarking_sim():
-            qml.RX(n * theta / pts, wires=0)
+            qml.RX(angle, wires=0)
             return qml.state()
 
         # Compile with Catalyst OQD pipelines
@@ -79,7 +81,7 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
         @qml.set_shots(1)
         @qml.qnode(oqd_dev)
         def oqd_circuit_benchmarking():
-            qml.RX(n * theta / pts, wires=0)
+            qml.RX(angle, wires=0)
             return qml.counts(wires=0)
 
         ########################################################################################
@@ -100,6 +102,8 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
             case _:
                 raise ValueError("Cannot extract duration")
 
+        print(angle / np.pi, duration)
+
         ########################################################################################
 
         # Compile AtomicCircuit to ARTIQ Python
@@ -113,7 +117,7 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
             ),
         )
         optimization_pass = Chain(
-            Post(SpectrumUnwrapResets(cores={20})),
+            Post(SpectrumUnwrapResets(cores={0, 20})),
             Post(SpectrumPrune()),
         )
 
@@ -170,11 +174,11 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
         ]
 
         for line in reversed(save_duration_ast):
-            artiq_experiment.body[2].body[1].body.insert(2, line)
+            artiq_experiment.body[3].body[1].body.insert(2, line)
 
         ########################################################################################
 
-        expt_path = output_path / f"rabi/oqd_circuit_rabi_{n}.artiq.py"
+        expt_path = output_path / f"rabi/oqd_circuit_benchmarking_{n}.artiq.py"
 
         if not expt_path.parent.exists():
             expt_path.parent.mkdir()
@@ -188,5 +192,5 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
 ########################################################################################
 
 if __name__ == "__main__":
-    # generate_rabi(5 * np.pi, 2)
-    generate_rabi(5 * np.pi, 60)
+    # generate_rabi(5 * np.pi, 61)
+    generate_rabi(np.pi / 2, 3)
