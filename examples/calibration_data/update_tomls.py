@@ -1,6 +1,7 @@
 import lmdb
 from pathlib import Path
 
+import re
 import numpy as np
 
 from fractions import Fraction
@@ -56,6 +57,8 @@ def decode(s):
 
 path = Path("./dataset_db.mdb")
 bloodstone_toml = Path("./bloodstone_params.toml")
+gate_toml = Path("./gate.toml")
+
 # Your existing code to load the data
 records = []
 lmdb_file = lmdb.open(path.as_posix(), subdir=False, map_size=2**30)
@@ -120,6 +123,7 @@ with open(bloodstone_toml, "w") as f:
 
 ########################################################################################
 
+
 pi_time = data["Raman_carrier_pi_time_param"][0]
 
 
@@ -127,7 +131,32 @@ rabi = np.pi / pi_time
 
 raw_rabi = np.sqrt((2 * 208570336271826.38) * rabi)
 
-
 print(
     f"Single qubit gate Rabi = \033[1;32m{raw_rabi}\033[0m, pi time = \033[1;32m{pi_time}\033[0m"
 )
+
+
+with open(gate_toml, "r") as f:
+    gate_tomls = f.read()
+
+pattern = r"""
+\[\[beams1\]\]
+rabi = ([0-9]*.?[0-9]*)
+""".strip()
+
+replace = f"""
+[[beams1]]
+rabi = {raw_rabi}
+""".strip()
+
+gate_tomls = re.sub(pattern, replace, gate_tomls)
+
+
+gate_toml.rename(
+    gate_toml.parent
+    / "archive"
+    / f"{gate_toml.stem}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.toml"
+)
+
+with open(gate_toml, "w") as f:
+    f.write(gate_tomls)

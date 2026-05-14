@@ -192,5 +192,5 @@ def generate_rabi(theta, pts, output_path=pathlib.Path("./expt")):
 ########################################################################################
 
 if __name__ == "__main__":
-    # generate_rabi(5 * np.pi, 61)
-    generate_rabi(np.pi / 2, 3)
+    generate_rabi(5 * np.pi, 61)
+    # generate_rabi(np.pi / 2, 3)
