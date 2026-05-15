@@ -1,7 +1,16 @@
+import pathlib
+
+
+device_toml_loc = pathlib.Path("../calibration_data/device.toml").resolve().as_posix()
+qubit_toml_loc = pathlib.Path("../calibration_data/qubit.toml").resolve().as_posix()
+gate_to_pulse_toml_loc = (
+    pathlib.Path("../calibration_data/gate.toml").resolve().as_posix()
+)
+
 toml_files = {
-    "device-toml-loc": "/home/user/oqd-catalyst/examples/calibration_data/device.toml",
-    "qubit-toml-loc": "/home/user/oqd-catalyst/examples/calibration_data/qubit.toml",
-    "gate-to-pulse-toml-loc": "/home/user/oqd-catalyst/examples/calibration_data/gate.toml",
+    "device-toml-loc": device_toml_loc,
+    "qubit-toml-loc": qubit_toml_loc,
+    "gate-to-pulse-toml-loc": gate_to_pulse_toml_loc,
 }
 
 toml_files = " ".join([f"{k}={v}" for k, v in toml_files.items()])
