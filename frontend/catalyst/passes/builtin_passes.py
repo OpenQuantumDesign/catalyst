@@ -929,9 +929,7 @@ def merge_ppr_ppm(qnode=None, *, max_pauli_size=0):
     return PassPipelineWrapper(qnode, merge_ppr_ppm_pass)
 
 
-def ppr_to_ppm(
-    qnode=None, *, decompose_method="pauli-corrected", avoid_y_measure=False
-):
+def ppr_to_ppm(qnode=None, *, decompose_method="pauli-corrected", avoid_y_measure=False):
     R"""
     A quantum compilation pass that decomposes Pauli product rotations (PPRs),
     :math:`P(\theta) = \exp(-iP\theta)`, into Pauli product measurements (PPMs).
@@ -1258,9 +1256,7 @@ def ppm_specs(fn):
             ) from e
 
     else:
-        raise NotImplementedError(
-            "PPM passes only support AOT (Ahead-Of-Time) compilation mode."
-        )
+        raise NotImplementedError("PPM passes only support AOT (Ahead-Of-Time) compilation mode.")
 
 
 def reduce_t_depth(qnode):
