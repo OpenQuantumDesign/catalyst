@@ -155,6 +155,9 @@ def DynamicOneShotPass : Pass<"dynamic-one-shot", "mlir::ModuleOp"> {
     ];
 }
 
+def PruneZeroRotationsPass : Pass<"prune-zero-rotations"> {
+    let summary = "Remove rotations of zero angle.";
+}
 // ----- Quantum circuit transformation passes end ----- //
 
 #endif // QUANTUM_PASSES

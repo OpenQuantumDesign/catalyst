@@ -996,14 +996,20 @@ def ppr_to_ppm(qnode=None, *, decompose_method="pauli-corrected", avoid_y_measur
 
     if qnode is None:
         return functools.partial(
-            ppr_to_ppm, decompose_method=decompose_method, avoid_y_measure=avoid_y_measure
+            ppr_to_ppm,
+            decompose_method=decompose_method,
+            avoid_y_measure=avoid_y_measure,
         )
 
     return PassPipelineWrapper(qnode, passes)
 
 
 def ppm_compilation(
-    qnode=None, *, decompose_method="pauli-corrected", avoid_y_measure=False, max_pauli_size=0
+    qnode=None,
+    *,
+    decompose_method="pauli-corrected",
+    avoid_y_measure=False,
+    max_pauli_size=0,
 ):
     R"""
     A quantum compilation pass that transforms Clifford+T gates into Pauli product measurements
@@ -1480,3 +1486,51 @@ def decompose_arbitrary_ppr(qnode):  # pragma: nocover
         ...
     """
     return PassPipelineWrapper(qnode, "decompose-arbitrary-ppr")
+
+
+def prune_zero_rotation(qnode):  # pragma: nocover
+    """
+    Specify that the ``--prune-zero-rotation`` MLIR compiler pass should be
+    applied to the decorated QNode during :func:`~.qjit` compilation.
+
+    .. note::
+
+        Unlike PennyLane :doc:`circuit transformations <introduction/compiling_circuits>`,
+        the QNode itself will not be changed or transformed by applying these
+        decorators.
+
+        As a result, circuit inspection tools such as :func:`~.draw` will continue
+        to display the circuit as written in Python.
+
+        To instead view the optimized circuit, the MLIR must be viewed
+        after the ``"QuantumCompilationStage"`` stage via the
+        :func:`~.get_compilation_stage` function.
+
+    Args:
+        fn (QNode): the QNode to apply the prune-zero-rotation pass to
+
+    Returns:
+        ~.QNode:
+
+    **Example**
+
+    .. code-block:: python
+
+        import pennylane as qml
+        from pennylane.devices import NullQubit
+
+        import catalyst
+        from catalyst import qjit
+        from catalyst.debug import get_compilation_stage
+
+
+        @qjit(keep_intermediate=True)
+        @catalyst.passes.prune_zero_rotation
+        @qml.qnode(NullQubit(2))
+        def circuit():
+            qml.Hadamard(wires=[0])
+            qml.CNOT(wires=[0, 1])
+            return qml.expval(qml.PauliY(wires=0))
+
+    """
+    return PassPipelineWrapper(qnode, "prune-zero-rotation")
