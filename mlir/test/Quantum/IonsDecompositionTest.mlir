@@ -113,7 +113,7 @@ func.func @test_ions_decomposition(%arg0: f64, %arg1: f64, %arg2: f64) -> (!quan
     // CHECK: [[qubit2:%.+]] = quantum.custom "RY"([[PIO2]]) [[qubit0]] : !quantum.bit
     // CHECK: [[qubits3:%.+]]:2 = quantum.custom "MS"([[PIO2]]) [[qubit2]], [[qubit1]] : !quantum.bit, !quantum.bit
     // CHECK: [[qubit4:%.+]] = quantum.custom "RX"([[MPIO2]]) [[qubits3]]#0 : !quantum.bit
-    // CHECK: [[qubit5:%.+]] = quantum.custom "RY"([[MPIO2]]) [[qubits3]]#1 : !quantum.bit
+    // CHECK: [[qubit5:%.+]] = quantum.custom "RX"([[MPIO2]]) [[qubits3]]#1 : !quantum.bit
     // CHECK: [[qubit6:%.+]] = quantum.custom "RY"([[MPIO2]]) [[qubit4]] : !quantum.bit
     // CHECK: return [[qubit5]], [[qubit6]] : !quantum.bit, !quantum.bit
     %0 = quantum.alloc( 2) : !quantum.reg
