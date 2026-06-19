@@ -126,18 +126,18 @@ void cnotDecomp(catalyst::quantum::CustomOp op, mlir::PatternRewriter &rewriter)
     auto rxMinusPiOver2 =
         CustomOp::create(rewriter, op.getLoc(), outQubitsTypes.front(), TypeRange{}, minusPiOver2,
                          qubit0AfterMs, "RX", false, ValueRange{}, ValueRange{});
-    auto firstRyMinusPiOver2 =
+    auto secondRxMinusPiOver2 =
         CustomOp::create(rewriter, op.getLoc(), outQubitsTypes.front(), TypeRange{}, minusPiOver2,
-                         qubit1AfterMs, "RY", false, ValueRange{}, ValueRange{});
+                         qubit1AfterMs, "RX", false, ValueRange{}, ValueRange{});
 
     mlir::Value qubit0AfterRY = rxMinusPiOver2.getOutQubits().front();
-    auto secondRyMinusPiOver2 =
+    auto ryMinusPiOver2 =
         CustomOp::create(rewriter, op.getLoc(), outQubitsTypes.front(), TypeRange{}, minusPiOver2,
                          qubit0AfterRY, "RY", false, ValueRange{}, ValueRange{});
 
     SmallVector<mlir::Value> qubitsEnd;
-    qubitsEnd.push_back(firstRyMinusPiOver2.getOutQubits().front());
-    qubitsEnd.push_back(secondRyMinusPiOver2.getOutQubits().front());
+    qubitsEnd.push_back(secondRxMinusPiOver2.getOutQubits().front());
+    qubitsEnd.push_back(ryMinusPiOver2.getOutQubits().front());
     op.replaceAllUsesWith(qubitsEnd);
 }
 
